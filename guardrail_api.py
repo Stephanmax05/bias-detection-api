@@ -11,12 +11,14 @@ app = FastAPI(title="Ethical AI Guardrail API")
 # This allows your Next.js frontend to communicate with this Render API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=[
+        "http://localhost:3000",
+        "http://bias-detection-k16evjbgq-maxs-projects-11a8ae22.vercel.app" # <--- Paste your URL here
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # 3. Load the Model
 try:
     model = joblib.load("fair_model.pkl")

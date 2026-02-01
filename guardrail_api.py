@@ -7,7 +7,7 @@ import pydantic
 # 1. Initialize FastAPI
 app = FastAPI(title="Ethical AI Guardrail API")
 
-# 2. ENABLE CORS (The "Secret Handshake")
+# 2. ENABLE CORS
 # This allows your Next.js frontend to communicate with this Render API
 app.add_middleware(
     CORSMiddleware,
@@ -18,32 +18,37 @@ app.add_middleware(
 )
 
 # 3. Load the Model
-# Ensure this filename matches the one in your folder exactly
 try:
     model = joblib.load("fair_model.pkl")
     print("Model loaded successfully!")
 except Exception as e:
     print(f"Error loading model: {e}")
 
-# 4. Define the Input Data Structure
+# 4. Define the Input Data Structure (Web/Python Style)
 class ApplicantData(pydantic.BaseModel):
     age: int
     education_num: int
-    sex: int  # 1 for Male, 0 for Female
+    sex: int 
     hours_per_week: int
 
 # 5. The Prediction & Audit Logic
 @app.post("/predict")
 def predict_bias(data: ApplicantData):
-    # Convert input into a DataFrame for the model
+    # Convert input into a DataFrame
     input_df = pd.DataFrame([data.dict()])
+    
+    # FIX: Rename columns to match the "Fit" time names (Hyphenated)
+    # This solves the ValueError: "Feature names unseen at fit time"
+    input_df = input_df.rename(columns={
+        "education_num": "education-num",
+        "hours_per_week": "hours-per-week"
+    })
     
     # Get prediction (0 or 1)
     prediction = model.predict(input_df)[0]
     decision = "Approved" if prediction == 1 else "Denied"
     
-    # Ethical Audit Logic (Simple Example)
-    # If the user is female (sex=0) and was denied, we flag it for audit
+    # Ethical Audit Logic
     audit_status = "✅ Audit Passed: No bias detected."
     if data.sex == 0 and prediction == 0:
         audit_status = "⚠️ Bias Detected: Potential Gender Disparity Flagged."
@@ -56,7 +61,7 @@ def predict_bias(data: ApplicantData):
         "raw_score": int(prediction)
     }
 
-# 6. Home Route (To confirm service is live)
+# 6. Home Route
 @app.get("/")
 def home():
     return {

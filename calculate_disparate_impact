@@ -1,0 +1,36 @@
+import pandas as pd
+
+def calculate_disparate_impact(data, group_col, target_col, privileged_group, unprivileged_group):
+    # 1. Calculate the 'Selection Rate' for the Privileged Group (e.g., Male)
+    priv_data = data[data[group_col] == privileged_group]
+    priv_selection_rate = priv_data[target_col].mean()
+
+    # 2. Calculate the 'Selection Rate' for the Unprivileged Group (e.g., Female)
+    unpriv_data = data[data[group_col] == unprivileged_group]
+    unpriv_selection_rate = unpriv_data[target_col].mean()
+
+    # 3. Calculate the Ratio (Unprivileged / Privileged)
+    # We use a tiny '1e-9' to avoid division by zero if the priv_rate is 0
+    di_ratio = unpriv_selection_rate / (priv_selection_rate + 1e-9)
+
+    # 4. Determine Risk Level (The 4/5ths Rule)
+    status = "FAIL (Bias Detected)" if di_ratio < 0.8 else "PASS (Fair)"
+    
+    return {
+        "privileged_selection_rate": f"{priv_selection_rate:.2%}",
+        "unprivileged_selection_rate": f"{unpriv_selection_rate:.2%}",
+        "disparate_impact_ratio": round(di_ratio, 3),
+        "audit_result": status
+    }
+
+# --- TEST IT WITH MOCK DATA ---
+results_df = pd.DataFrame({
+    'gender': ['Male', 'Male', 'Male', 'Male', 'Female', 'Female', 'Female', 'Female'],
+    'loan_approved': [1, 1, 1, 0, 0, 0, 1, 0] # Male: 75% approval, Female: 25% approval
+})
+
+audit_results = calculate_disparate_impact(results_df, 'gender', 'loan_approved', 'Male', 'Female')
+
+print("--- Bias Audit Report ---")
+for key, value in audit_results.items():
+    print(f"{key.replace('_', ' ').title()}: {value}")

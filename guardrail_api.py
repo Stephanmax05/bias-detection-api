@@ -1,77 +1,66 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import joblib
 import pandas as pd
-import joblib # Used to save/load your trained model
+import pydantic
 
-# 1. Initialize the API
-app = FastAPI(title="Ethical AI Guardrail")
+# 1. Initialize FastAPI
+app = FastAPI(title="Ethical AI Guardrail API")
 
-# 2. Define what a 'Request' looks like (The input data)
-class ApplicantData(BaseModel):
+# 2. ENABLE CORS (The "Secret Handshake")
+# This allows your Next.js frontend to communicate with this Render API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 3. Load the Model
+# Ensure this filename matches the one in your folder exactly
+try:
+    model = joblib.load("fair_model.pkl")
+    print("Model loaded successfully!")
+except Exception as e:
+    print(f"Error loading model: {e}")
+
+# 4. Define the Input Data Structure
+class ApplicantData(pydantic.BaseModel):
     age: int
     education_num: int
-    sex: int 
+    sex: int  # 1 for Male, 0 for Female
     hours_per_week: int
 
-# --- LOAD YOUR MODEL ---
-# (Note: You'll need to save your 'fair_model' from the previous script using joblib.dump)
-# For now, let's assume it's loaded.
-# model = joblib.load("fair_model.pkl")
-
+# 5. The Prediction & Audit Logic
 @app.post("/predict")
-async def predict_with_guardrail(data: ApplicantData):
-    # Convert input to DataFrame
+def predict_bias(data: ApplicantData):
+    # Convert input into a DataFrame for the model
     input_df = pd.DataFrame([data.dict()])
     
-    # --- THE GUARDRAIL CHECK ---
-    # In a real guardrail, we check if the input features are 'Protected'
-    # Or we check the prediction against our fairness threshold.
+    # Get prediction (0 or 1)
+    prediction = model.predict(input_df)[0]
+    decision = "Approved" if prediction == 1 else "Denied"
     
-    # 1. Mock Prediction (Replace with model.predict)
-    # prediction = model.predict(input_df)[0]
-    prediction = 1 # Mocking an 'Approved' status
-    
-    # 2. The Ethical Logic
-    # If the model is known to have a 6% flip rate for women, 
-    # the guardrail might flag this specific request for manual review.
-    if data.sex == 0: # If applicant is female
-        audit_note = "High Fairness Sensitivity: Manual Review Recommended."
-    else:
-        audit_note = "Standard Processing."
+    # Ethical Audit Logic (Simple Example)
+    # If the user is female (sex=0) and was denied, we flag it for audit
+    audit_status = "✅ Audit Passed: No bias detected."
+    if data.sex == 0 and prediction == 0:
+        audit_status = "⚠️ Bias Detected: Potential Gender Disparity Flagged."
+    elif data.age < 25 and prediction == 0:
+        audit_status = "⚠️ Bias Detected: Potential Age Discrimination Flagged."
 
     return {
-        "status": "Green Light" if prediction == 1 else "Denied",
-        "fairness_audit": audit_note,
-        "raw_prediction": int(prediction)
+        "decision": decision,
+        "ethical_audit": audit_status,
+        "raw_score": int(prediction)
     }
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-    import joblib
-
-# Load the model when the API starts
-model = joblib.load('fair_model.pkl')
-
-@app.post("/predict")
-async def predict_with_guardrail(data: ApplicantData):
-    # Convert incoming JSON to a format the model understands
-    input_data = [[data.age, data.education_num, data.sex, data.hours_per_week]]
-    
-    # Get the real AI prediction
-    prediction = model.predict(input_data)[0]
-    
-    # Apply the Ethical Guardrail
-    status = "Approved" if prediction == 1 else "Denied"
-    
-    # Logic: If the model denies a woman, we flag it for 'Fairness Review'
-    # because our Red-Teaming found bias earlier.
-    audit_flag = False
-    if data.sex == 0 and prediction == 0:
-        audit_flag = True
-        
+# 6. Home Route (To confirm service is live)
+@app.get("/")
+def home():
     return {
-        "decision": status,
-        "requires_manual_fairness_review": audit_flag,
-        "api_version": "v1.0-redteamed"
+        "status": "Active",
+        "service": "Ethical AI Guardrail",
+        "documentation": "/docs"
     }

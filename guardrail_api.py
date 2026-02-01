@@ -11,7 +11,10 @@ app = FastAPI(title="Ethical AI Guardrail API")
 # This allows your Next.js frontend to communicate with this Render API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows every website to talk to your API
+    allow_origins=[
+        "http://localhost:3000",
+        "https://your-actual-site.vercel.app" # Replace with your real Vercel link
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

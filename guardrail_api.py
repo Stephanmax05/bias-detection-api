@@ -13,7 +13,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://your-actual-site.vercel.app" # Replace with your real Vercel link
+        
+"bias-detection-api-oqhs-git-main-maxs-projects-11a8ae22.vercel.app" # Replace with your real Vercel link
     ],
     allow_credentials=True,
     allow_methods=["*"],

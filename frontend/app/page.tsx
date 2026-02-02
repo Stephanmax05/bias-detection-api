@@ -1,9 +1,9 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
+  // ... rest of the code
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [formData, setFormData] = useState({

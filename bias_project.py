@@ -11,9 +11,7 @@ app = FastAPI(title="Ethical AI Guardrail SaaS API")
 # This allows your frontend (website) to talk to this backend.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000",
-
-    "bias-detection-api-oqhs-git-main-maxs-projects-11a8ae22.vercel.app"],  # For production, change this to your Vercel URL
+   allow_origins=["*"]
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

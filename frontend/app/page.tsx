@@ -18,12 +18,12 @@ export default function BiasDashboard() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch("https://bias-detection-api.onrender.com/predict", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      
+   // Find your fetch call and update the URL:
+const response = await fetch("https://your-backend-api.onrender.com/predict", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(formData),
+});
       const data = await response.json();
       const newResult = { 
         ...data, 
